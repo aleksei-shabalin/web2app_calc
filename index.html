@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web2App Funnel Calculator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                400: '#38bdf8',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                900: '#0c4a6e',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+        /* Custom range input styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased font-sans">
+    
+    <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto">
+            
+            <!-- Header -->
+            <header class="mb-10 text-center border-b border-slate-200 pb-6">
+                <div class="flex flex-col items-center justify-center">
+                    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                        <span class="bg-brand-600 text-white p-2 rounded-lg">
+                            <!-- Icon: Calculator -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+                        </span>
+                        Web2App Calculator
+                    </h1>
+                    <p class="mt-2 text-lg text-slate-600">
+                        Calculate your funnel unit economics: from click to purchase.
+                    </p>
+                </div>
+            </header>
+
+            <div class="space-y-8">
+                <!-- Main Result Card -->
+                <div class="bg-white rounded-2xl shadow-lg border border-brand-100 overflow-hidden relative">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-400 to-indigo-500"></div>
+                    <div class="p-8 text-center">
+                        <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                            Max Cost Per Click (Max CPC)
+                        </h2>
+                        <div class="flex items-center justify-center text-7xl font-black text-brand-600 tracking-tighter my-6">
+                            <span class="text-4xl mr-1 text-brand-400 font-bold">$</span>
+                            <span id="maxCPCOutput">1.13</span>
+                        </div>
+                        <p class="text-base text-slate-600 px-4 max-w-xl mx-auto">
+                            This is the maximum bid you can afford in ads to stay within your Target CPA.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Inputs Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+                    <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <!-- Icon: TrendingUp -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-500"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                        Funnel Parameters
+                    </h3>
+
+                    <!-- Input: Target CPA -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-medium text-slate-700 mb-2 flex justify-between">
+                            <span>Target CPA (Cost Per Purchase)</span>
+                            <span class="text-brand-600 font-bold">$<span id="cpaDisplay">45</span></span>
+                        </label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-slate-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                id="cpaInput"
+                                value="45"
+                                class="block w-full pl-7 pr-12 py-3 border-slate-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 sm:text-lg font-bold text-black bg-white border placeholder-slate-400 shadow-sm"
+                                placeholder="0.00"
+                            />
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-slate-500 sm:text-sm">USD</span>
+                            </div>
+                        </div>
+                        <input
+                            type="range"
+                            id="cpaRange"
+                            min="5"
+                            max="200"
+                            step="1"
+                            value="45"
+                            class="w-full mt-3 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                        />
+                    </div>
+
+                    <!-- Input: Quiz Conversion -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2 flex justify-between">
+                            <div class="flex items-center gap-1">
+                                <span>Quiz Conversion Rate</span>
+                                <div class="group relative">
+                                    <!-- Icon: HelpCircle -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 cursor-help"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-center z-10">
+                                        Percentage of users who purchased after clicking.
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-brand-600 font-bold"><span id="crDisplay">2.5</span>%</span>
+                        </label>
+                        <div class="relative rounded-md shadow-sm">
+                            <input
+                                type="number"
+                                id="crInput"
+                                value="2.5"
+                                step="0.1"
+                                class="block w-full px-4 py-3 border-slate-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 sm:text-lg font-bold text-black bg-white border placeholder-slate-400 shadow-sm"
+                                placeholder="0.00"
+                            />
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-slate-500 sm:text-sm">%</span>
+                            </div>
+                        </div>
+                        <input
+                            type="range"
+                            id="crRange"
+                            min="0.1"
+                            max="10"
+                            step="0.1"
+                            value="2.5"
+                            class="w-full mt-3 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                        />
+                        
+                        <div class="mt-3 flex items-center gap-2 p-2 bg-yellow-50 text-yellow-800 text-xs rounded-md border border-yellow-200">
+                            <span class="font-bold shrink-0">Benchmark:</span>
+                            <span>For Web2App, a quiz conversion rate is typically <span class="font-bold">1-5%</span> (click - purchase).</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Card -->
+                <div class="h-80 w-full mt-6 bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <h3 class="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">CPC Sensitivity to Conversion Rate</h3>
+                    <div class="relative h-full w-full" style="height: 250px;">
+                        <canvas id="resultsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <footer class="mt-12 text-center text-slate-400 text-sm">
+                <p>© <span id="year"></span> Web2App Tools. Marketing Funnel Optimization.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Set Year
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Elements
+        const cpaInput = document.getElementById('cpaInput');
+        const cpaRange = document.getElementById('cpaRange');
+        const cpaDisplay = document.getElementById('cpaDisplay');
+        
+        const crInput = document.getElementById('crInput');
+        const crRange = document.getElementById('crRange');
+        const crDisplay = document.getElementById('crDisplay');
+        
+        const maxCPCOutput = document.getElementById('maxCPCOutput');
+        
+        // Chart Instance
+        let chart;
+
+        // State
+        let state = {
+            targetCPA: 45,
+            conversionRate: 2.5
+        };
+
+        // Initialize
+        function init() {
+            updateCalculations();
+            initChart();
+            setupListeners();
+        }
+
+        function setupListeners() {
+            // CPA Listeners
+            cpaInput.addEventListener('input', (e) => handleCPAChange(e.target.value));
+            cpaRange.addEventListener('input', (e) => handleCPAChange(e.target.value));
+
+            // CR Listeners
+            crInput.addEventListener('input', (e) => handleCRChange(e.target.value));
+            crRange.addEventListener('input', (e) => handleCRChange(e.target.value));
+        }
+
+        function handleCPAChange(value) {
+            const val = parseFloat(value) || 0;
+            state.targetCPA = val;
+            cpaInput.value = val;
+            cpaRange.value = val;
+            cpaDisplay.textContent = val;
+            updateCalculations();
+        }
+
+        function handleCRChange(value) {
+            const val = parseFloat(value) || 0;
+            state.conversionRate = val;
+            crInput.value = val;
+            crRange.value = val;
+            crDisplay.textContent = val;
+            updateCalculations();
+        }
+
+        function updateCalculations() {
+            const maxCPC = state.targetCPA * (state.conversionRate / 100);
+            maxCPCOutput.textContent = maxCPC.toFixed(2);
+            updateChart();
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Max CPC Curve',
+                            data: generateCurveData(),
+                            borderColor: '#0ea5e9',
+                            borderWidth: 3,
+                            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                            showLine: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'You are here',
+                            data: [{x: state.conversionRate, y: state.targetCPA * (state.conversionRate / 100)}],
+                            backgroundColor: '#0ea5e9',
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#1e293b',
+                            bodyColor: '#1e293b',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Max CPC: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Conversion Rate (%)',
+                                color: '#64748b',
+                                font: { size: 12 }
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                callback: function(value) { return value + '%' }
+                            },
+                            grid: {
+                                color: '#e2e8f0',
+                                drawBorder: false
+                            },
+                            min: 0,
+                            max: 16
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Max CPC ($)',
+                                color: '#64748b',
+                                font: { size: 12 }
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                callback: function(value) { return '$' + value }
+                            },
+                            grid: {
+                                color: '#e2e8f0',
+                                borderDash: [5, 5],
+                                drawBorder: false
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateCurveData() {
+            // Generate points from 0 to 16% CR
+            const data = [];
+            for (let i = 0; i <= 32; i++) {
+                const cr = i * 0.5; // 0, 0.5, 1.0, ... 16.0
+                const cpc = state.targetCPA * (cr / 100);
+                data.push({x: cr, y: cpc});
+            }
+            return data;
+        }
+
+        function updateChart() {
+            if (!chart) return;
+            
+            // Update Curve
+            chart.data.datasets[0].data = generateCurveData();
+            
+            // Update "You are here" point
+            const currentCPC = state.targetCPA * (state.conversionRate / 100);
+            chart.data.datasets[1].data = [{x: state.conversionRate, y: currentCPC}];
+            
+            chart.update();
+        }
+
+        // Run
+        init();
+
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
